@@ -1,41 +1,21 @@
-# A simple Makefile for compiling small SDL projects
+# Compiler and flags
+CXX = g++
+CXXFLAGS = -Wall -std=c++17
 
-# set the compiler
-CC := clang
+# SDL2 Paths
+SDL2_CFLAGS := $(shell sdl2-config --cflags)
+SDL2_LDFLAGS := $(shell sdl2-config --libs)
 
-# set the compiler flags
-CFLAGS := `sdl2-config --libs --cflags` -ggdb3 -O0 --std=c99 -Wall -lSDL2_image -lm
-# add header files here
-HDRS :=
+# Target executable
+TARGET = make_program
+SRC = make.cpp
 
-# add source files here
-SRCS := #file-name.c
+# Build rule
+all: $(TARGET)
 
-# generate names of object files
-OBJS := $(SRCS:.c=.o)
+$(TARGET): $(SRC)
+	$(CXX) $(CXXFLAGS) $(SDL2_CFLAGS) $(SRC) -o $(TARGET) $(SDL2_LDFLAGS)
 
-# name of executable
-EXEC := #name your executable file
-
-# default recipe
-all: $(EXEC)
- 
-showfont: showfont.c Makefile
-    $(CC) -o $@ $@.c $(CFLAGS) $(LIBS)
-
-glfont: glfont.c Makefile
-    $(CC) -o $@ $@.c $(CFLAGS) $(LIBS)
-
-# recipe for building the final executable
-$(EXEC): $(OBJS) $(HDRS) Makefile
-    $(CC) -o $@ $(OBJS) $(CFLAGS)
-
-# recipe for building object files
-#$(OBJS): $(@:.o=.c) $(HDRS) Makefile
-#    $(CC) -o $@ $(@:.o=.c) -c $(CFLAGS)
-
-# recipe to clean the workspace
+# Clean rule
 clean:
-    rm -f $(EXEC) $(OBJS)
-
-.PHONY: all clean
+	rm -f $(TARGET)
