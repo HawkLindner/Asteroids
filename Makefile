@@ -2,13 +2,13 @@
 CXX = g++
 CXXFLAGS = -Wall -std=c++17
 
-# SDL2 Paths
+# SDL2 Flags
 SDL2_CFLAGS := $(shell sdl2-config --cflags)
 SDL2_LDFLAGS := $(shell sdl2-config --libs)
 
 # Target executable
 TARGET = ast
-SRC = make.cpp
+SRC = main.cpp
 
 # Build rule
 all: $(TARGET)

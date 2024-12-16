@@ -7,6 +7,11 @@
 // for using SDL_Delay() functions
 #include <SDL2/SDL_timer.h>
 
+
+/*
+
+    COMPILE: g++ -Wall -std=c++17 $(sdl2-config --cflags --libs) -lSDL2_image make.cpp -o ast
+*/
 int main(int argc, char *argv[])
 {
     // returns zero on success else non-zero
