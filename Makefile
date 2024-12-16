@@ -7,7 +7,7 @@ SDL2_CFLAGS := $(shell sdl2-config --cflags)
 SDL2_LDFLAGS := $(shell sdl2-config --libs)
 
 # Target executable
-TARGET = make_program
+TARGET = ast
 SRC = make.cpp
 
 # Build rule
