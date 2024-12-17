@@ -135,6 +135,7 @@ while (running) {
     }
     if (state[SDL_SCANCODE_SPACE] && !spacePressed){
         bullets.emplace_back(x, y, angle);
+        Mix_PlayChannel(-1, shootSound, 0); // Play shooting sound
         spacePressed = true;
     } 
     if (!state[SDL_SCANCODE_SPACE]){
@@ -205,7 +206,8 @@ while (running) {
 }
 
 
-    // Cleanup
+    Mix_FreeChunk(shootSound); // Free shooting sound
+    Mix_CloseAudio();          // Close SDL_mixer
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
