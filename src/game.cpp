@@ -7,7 +7,11 @@
 // for using SDL_Delay() functions
 #include <SDL2/SDL_timer.h>
 
+#include <SDL2/SDL_mixer.h>
+
+
 #include "game.h"
+#include "bullet.h"
 
 #include <iostream>
 #include <string>
@@ -50,9 +54,29 @@ void createGame(){
         return;
     }
 
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        cout << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+
+    // Load shooting sound
+    Mix_Chunk* shootSound = Mix_LoadWAV("assets/shoot.wav");
+    if (!shootSound) {
+        cout << "Failed to load shooting sound! SDL_mixer Error: " << Mix_GetError() << endl;
+        Mix_CloseAudio();
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+
     // Main loop flag
     bool running = true;
     bool isMoving = false;
+    bool spacePressed = false;
     SDL_Event event;
 
      // Ship State
@@ -66,6 +90,7 @@ void createGame(){
     const double rotationSpeed = 3.0;
 
 
+    vector<bullet> bullets;
     // Game loop
 while (running) {
     // Handle events
@@ -107,6 +132,13 @@ while (running) {
         angle += rotationSpeed;
         if (angle >= 360) angle -= 360.0;
     }
+    if (state[SDL_SCANCODE_SPACE] && !spacePressed){
+        bullets.emplace_back(x, y, angle);
+        spacePressed = true;
+    } 
+    if (!state[SDL_SCANCODE_SPACE]){
+        spacePressed = false;
+    }
 
     if (!isMoving) {
     velocityX *= friction;
@@ -135,6 +167,15 @@ while (running) {
     if (y > SCREEN_HEIGHT) y = 0;
     if (y < 0) y = SCREEN_HEIGHT;
 
+    for (auto& bullet : bullets) bullet.update();
+
+
+        // Remove inactive bullets
+        bullets.erase(remove_if(bullets.begin(), bullets.end(),
+                                        [](const bullet& b) { return !b.isActive(); }),
+                                        bullets.end());
+
+
     // Rendering
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Clear screen to black
     SDL_RenderClear(renderer);
@@ -153,6 +194,8 @@ while (running) {
     points[3] = points[0]; // Close the triangle
 
     SDL_RenderDrawLines(renderer, points, 4);
+
+    for (auto& bullet : bullets) bullet.render(renderer);
 
     // Update Screen
     SDL_RenderPresent(renderer);
