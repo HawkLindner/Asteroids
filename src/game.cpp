@@ -80,6 +80,9 @@ while (running) {
     if (state[SDL_SCANCODE_ESCAPE]){
         running = false;
     }
+    if (state[SDL_KEYUP]){
+        isMoving = false;
+    }
     if (state[SDL_SCANCODE_W]) {
         // Move forward in the facing direction
         velocityX += cos(toRadians(angle)) * speed;
