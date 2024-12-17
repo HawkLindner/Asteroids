@@ -22,6 +22,7 @@ using namespace std;
 */
 int main(int argc, char *argv[])
 {
+    cout<<"Welcome"<<endl;
     // Initialize SDL
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         printf("Error initializing SDL: %s\n", SDL_GetError());

@@ -8,7 +8,7 @@ SDL2_LDFLAGS := $(shell sdl2-config --libs)
 
 # Target executable
 TARGET = ast
-SRC = main.cpp
+SRC = src/main.cpp
 
 # Build rule
 all: $(TARGET)
