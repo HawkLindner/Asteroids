@@ -1,21 +1,19 @@
-# Compiler and flags
 CXX = g++
-CXXFLAGS = -Wall -std=c++17
+CXXFLAGS = -std=c++17 -Wall -Wextra $(shell sdl2-config --cflags)
+LIBS = $(shell sdl2-config --libs)
+SRC = src/main.cpp src/game.cpp src/ship.cpp src/asteroid.cpp src/bullet.cpp src/vector2d.cpp
+OBJ = $(SRC:.cpp=.o)
+TARGET = Asteroids
 
-# SDL2 Flags
-SDL2_CFLAGS := $(shell sdl2-config --cflags)
-SDL2_LDFLAGS := $(shell sdl2-config --libs)
-
-# Target executable
-TARGET = ast
-SRC = src/main.cpp
-
-# Build rule
 all: $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(SDL2_CFLAGS) $(SRC) -o $(TARGET) $(SDL2_LDFLAGS)
+$(TARGET): $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJ) $(LIBS)
 
-# Clean rule
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 clean:
-	rm -f $(TARGET)
+	rm -f $(OBJ) $(TARGET)
+
+.PHONY: all clean

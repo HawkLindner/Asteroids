@@ -1,0 +1,4 @@
+/*
+    Represents asteroids.
+    Handles asteroid movement and splitting when destroyed.
+*/
