@@ -28,6 +28,8 @@ public:
     void update();
     void render(SDL_Renderer* renderer);
     bool isActive() const;
+    double getX();
+    double getY();
 
 private:
     double x, y;

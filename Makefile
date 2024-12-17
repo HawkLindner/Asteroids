@@ -1,6 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra $(shell sdl2-config --cflags)
-LIBS = $(shell sdl2-config --libs -lSDL2) -lSDL2_mixer
+LIBS = $(shell sdl2-config --libs) -lSDL2_mixer -lSDL2_ttf
+
 
 SRC = src/main.cpp src/game.cpp src/ship.cpp src/asteroid.cpp src/bullet.cpp src/vector2d.cpp
 OBJ = $(SRC:.cpp=.o)

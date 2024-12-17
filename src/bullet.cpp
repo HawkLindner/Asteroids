@@ -11,6 +11,12 @@
 const double PI = 3.14159265;
 inline double toRadians(double degrees) { return degrees * PI / 180.0; }
 
+double bullet::getX(){
+    return x;
+}
+double bullet::getY(){
+    return y;
+}
 bullet::bullet(double startX, double startY, double angle) 
     : x(startX), y(startY), active(true) {
     // Calculate bullet velocity based on angle
