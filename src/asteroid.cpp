@@ -3,7 +3,7 @@
     Handles asteroid movement and splitting when destroyed.
 */
 
-#include "Asteroid.h"
+#include "asteroid.h"
 #include <vector>
 
 using namespace std;
