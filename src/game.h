@@ -6,7 +6,7 @@
 #include <string>         // Include string for std::string
 #include "bullet.h"
 #include "asteroid.h"
-void renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, SDL_Color color);
+SDL_Texture* renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, SDL_Color color);
 
 void drawStartingShip(double x, double y, double angle,SDL_Renderer* renderer);
 void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets,int &playerLives, double x, double y,double velocityX, double velocityY, bool &gameOver
