@@ -13,7 +13,7 @@ const int SCREEN_HEIGHT = 900;
 
 asteroid::asteroid(double startX, double startY, double velX, double velY, int size, int splitCount)
     : x(startX), y(startY), velocityX(velX), velocityY(velY), size(size), 
-      splitCount(splitCount), active(true) {}
+    splitCount(splitCount), active(true) {}
 
 void asteroid::update() {
     // Update position

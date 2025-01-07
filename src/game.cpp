@@ -1,19 +1,21 @@
 // for initializing and shutdown functions
 #include <SDL2/SDL.h>
-
 // for rendering images and graphics on screen
 #include <SDL2/SDL_image.h>
-
 // for using SDL_Delay() functions
 #include <SDL2/SDL_timer.h>
-
 #include <SDL2/SDL_mixer.h>
-
 #include <SDL2/SDL_ttf.h>
 
+
+//Using SDL, SDL_image, SDL_ttf, standard IO, math, and strings
+
+#include <stdio.h>
 #include "game.h"
 #include "bullet.h"
 #include "asteroid.h"
+
+#include <unistd.h> // for sleep()
 
 #include <iostream>
 #include <string>
@@ -30,34 +32,55 @@ using namespace std;
 
 const int SCREEN_WIDTH = 1200;
 const int SCREEN_HEIGHT = 800;
+//sets font color
+SDL_Color textColor = {255, 255, 255, 255};
+//for keyboard
+SDL_Event event;
+// Key Handling, gets the state of the keyboard
+const Uint8* state = SDL_GetKeyboardState(NULL);
+//how many player lives until they lose
+int playerLives = 3;
 
 const double PI = 3.14159265;
 //function to convert degrees to radians
 inline double toRadians(double degrees) { return degrees * PI / 180.0; }
-
-
+double x,y;
+double velocityX,velocityY;
 /*
     This function is used to render the text that will display the players lives
 */
-SDL_Texture* renderText(SDL_Renderer* renderer, TTF_Font* font, const string& text, int x, int y, SDL_Color color) {
+SDL_Texture* renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, SDL_Color color) {
+    // Render the text to a surface
     SDL_Surface* textSurface = TTF_RenderText_Solid(font, text.c_str(), color);
     if (!textSurface) {
-        cout << "Failed to create text surface! TTF_Error: " << TTF_GetError() << endl;
-        return NULL;
+        std::cout << "Failed to create text surface! TTF_Error: " << TTF_GetError() << std::endl;
+        return nullptr;
     }
 
+    // Convert surface to texture
     SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    SDL_FreeSurface(textSurface);
+    SDL_FreeSurface(textSurface); // Free the surface as it's no longer needed
 
     if (!textTexture) {
-        cout << "Failed to create text texture! SDL_Error: " << SDL_GetError() << endl;
-        return NULL;
+        std::cout << "Failed to create text texture! SDL_Error: " << SDL_GetError() << std::endl;
+        return nullptr;
     }
 
-    SDL_Rect renderQuad = {x, y, textSurface->w, textSurface->h};
-    SDL_RenderCopy(renderer, textTexture, NULL, &renderQuad);
     return textTexture;
 }
+
+void renderTextOnScreen(SDL_Renderer* renderer, SDL_Texture* textTexture, int x, int y) {
+    // Query the width and height of the texture
+    int width, height;
+    SDL_QueryTexture(textTexture, nullptr, nullptr, &width, &height);
+
+    // Set the position and size of the text
+    SDL_Rect renderQuad = {x, y, width, height};
+
+    // Render the text on the screen
+    SDL_RenderCopy(renderer, textTexture, nullptr, &renderQuad);
+}
+
 
 
 void drawStartingShip(double x, double y, double angle,SDL_Renderer* renderer){
@@ -110,20 +133,18 @@ void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets,int &playe
         if (shipDistance < itAst->getRad()) {
             // Ship hits asteroid
             playerLives--;
+            sleep(2);
+            y = SCREEN_HEIGHT/2;
+            x = SCREEN_WIDTH/2;
+            velocityX,velocityY = 0;
+            drawStartingShip(x,y,angle,renderer);
+
 
 
             if (playerLives == 0) {
                 gameOver = true; // Trigger game over
                 break;
             }
-
-
-            // Reset ship position and velocity
-            x = SCREEN_WIDTH / 2;
-            y = SCREEN_HEIGHT / 2;
-            velocityX = 0;
-            velocityY = 0;
-            drawStartingShip(x,y,angle,renderer);
 
             asteroidDestroyed = true; // Optionally destroy asteroid
         }
@@ -195,15 +216,11 @@ void createGame(){
     }
 
     // Load the font from assets folder
-    TTF_Font *font = TTF_OpenFont("assets/stocky/stocky.ttf", 100); // Path to your font file
+    TTF_Font *font = TTF_OpenFont("assets/fonts/stocky.ttf", 36); // Path to your font file
     if (!font) {
         cout << "Failed to load font! TTF_Error: " << TTF_GetError() << endl;
-        TTF_Quit();
         return;
     }
-    
-    //sets font color
-    SDL_Color textColor = {255, 255, 255, 255};
 
     // Main loop flag
     bool running = true;
@@ -213,15 +230,12 @@ void createGame(){
     bool isMoving = false;
     //if the space is pressed, we are shooting a bullet
     bool spacePressed = false;
-    //how many player lives until they lose
-    int playerLives = 3;
     //if player lives gets to 0, game over
     bool gameOver = false;
-    //for keyboard
-    SDL_Event event;
     //starts the ship in the center
     double x = SCREEN_WIDTH / 2;
     double y = SCREEN_HEIGHT / 2;
+    double speedMagnitude;
     //speed limit for the ship
     const double speedLimit = 3.0;
     //percent to slow down the ship
@@ -238,10 +252,6 @@ void createGame(){
     //vectors for bullets and asteroids
     vector<bullet> bullets;
     vector<asteroid> asteroids;
-    SDL_Texture *textTexture;
-
-    //starts a time for the rand()
-    srand(static_cast<unsigned>(time(0)));
 
     // Spawn initial asteroids, needs to be worked on for levels
     for (int i = 0; i < 15; ++i) {
@@ -253,49 +263,6 @@ void createGame(){
         asteroids.emplace_back(startX, startY, velocityX, velocityY, size);
         
     }
-    vector<asteroid> startScreenAsteroids;
-    srand(static_cast<unsigned>(time(0)));
-    for (int i = 0; i < 10; ++i) {
-        double startX = rand() % SCREEN_WIDTH;
-        double startY = rand() % SCREEN_HEIGHT;
-        double velocityX = (rand() % 3 + 1) * (rand() % 2 == 0 ? 1 : -1);
-        double velocityY = (rand() % 3 + 1) * (rand() % 2 == 0 ? 1 : -1);
-        int size = 3;
-        startScreenAsteroids.emplace_back(startX, startY, velocityX, velocityY, size);
-    }
-    while (isStartScreen && running) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                running = false;
-                SDL_DestroyTexture(textTexture);
-                return;
-            }
-
-            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN) {
-                isStartScreen = false;
-            }
-        }
-
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
-        SDL_RenderClear(renderer);
-        // Render title and prompt
-        
-        textTexture = renderText(renderer, font, "ASTEROIDS", SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 100, textColor);
-        renderText(renderer, font, "Press Enter to Start", SCREEN_WIDTH / 2 - 200, SCREEN_HEIGHT / 2, textColor);
-
-        
-        // Render asteroids
-        for (auto& asteroid : startScreenAsteroids) {
-            asteroid.update();
-            asteroid.render(renderer);
-        }
-
-        SDL_RenderPresent(renderer);
-
-        SDL_Delay(16); // Cap ~60 FPS
-}
-
 
     // Game loop, while running is true, we loop
     while (running) {
@@ -305,8 +272,6 @@ void createGame(){
                 running = false; // Exit when the window is closed
             }
         }
-        // Key Handling, gets the state of the keyboard
-        const Uint8* state = SDL_GetKeyboardState(NULL);
         //if escape close the loop and end program
         if (state[SDL_SCANCODE_ESCAPE]){
             running = false;
@@ -361,7 +326,14 @@ void createGame(){
             if (fabs(velocityY) < 0.01) velocityY = 0;
         }
 
-        double speedMagnitude = sqrt(velocityX * velocityX + velocityY * velocityY);
+        // Screen Wrap-around
+        if (x > SCREEN_WIDTH) x = 0;
+        if (x < 0) x = SCREEN_WIDTH;
+        if (y > SCREEN_HEIGHT) y = 0;
+        if (y < 0) y = SCREEN_HEIGHT;
+
+
+        speedMagnitude = sqrt(velocityX * velocityX + velocityY * velocityY);
 
         // Apply speed limit
         if (speedMagnitude > speedLimit) {
@@ -373,11 +345,7 @@ void createGame(){
         y += velocityY;
 
 
-        // Screen Wrap-around
-        if (x > SCREEN_WIDTH) x = 0;
-        if (x < 0) x = SCREEN_WIDTH;
-        if (y > SCREEN_HEIGHT) y = 0;
-        if (y < 0) y = SCREEN_HEIGHT;
+
 
         for (auto& bullet : bullets) bullet.update();
         for (auto& asteroid : asteroids) asteroid.update();
@@ -396,8 +364,8 @@ void createGame(){
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Ship color (white)
 
           // Render the remaining lives
-        string livesText = "Lives: " + to_string(playerLives);
-        renderText(renderer, font, livesText, 10, 10, textColor);
+        // string livesText = "Lives: " + to_string(playerLives);
+        // renderText(renderer, font, livesText, 10, 10, textColor);
 
         drawStartingShip(x,y,angle,renderer);
 
@@ -407,55 +375,55 @@ void createGame(){
         for (auto& asteroid : asteroids) asteroid.render(renderer);
 
 
-        if (gameOver) {
-            // Clear the screen
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-            SDL_RenderClear(renderer);
+        // if (gameOver) {
+        //     // Clear the screen
+        //     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        //     SDL_RenderClear(renderer);
 
-            // Keep asteroids floating
-            for (auto& asteroid : asteroids) {
-                asteroid.update();  // Update asteroid positions
-                asteroid.render(renderer);  // Render asteroids
-            }
+        //     // Keep asteroids floating
+        //     for (auto& asteroid : asteroids) {
+        //         asteroid.update();  // Update asteroid positions
+        //         asteroid.render(renderer);  // Render asteroids
+        //     }
 
-            // Display "Game Over" message
-            string gameOverText = "GAME OVER";
-            string restartText = "Press Enter to Restart";
-            renderText(renderer, font, gameOverText, SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, textColor);
-            renderText(renderer, font, restartText, SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 + 20, textColor);
+        //     // Display "Game Over" message
+        //     string gameOverText = "GAME OVER";
+        //     string restartText = "Press Enter to Restart";
+        //     renderText(renderer, font, gameOverText, SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, textColor);
+        //     renderText(renderer, font, restartText, SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 + 20, textColor);
 
-            SDL_RenderPresent(renderer); // Display everything
+        //     SDL_RenderPresent(renderer); // Display everything
 
-            // Wait for Enter key to restart the game
-            SDL_Event event;
-            while (true) {
-                while (SDL_PollEvent(&event)) {
-                    if (event.type == SDL_QUIT) {
-                        running = false; // Exit the main game loop
-                        return;
-                    }
+        //     // Wait for Enter key to restart the game
+        //     SDL_Event event;
+        //     while (true) {
+        //         while (SDL_PollEvent(&event)) {
+        //             if (event.type == SDL_QUIT) {
+        //                 running = false; // Exit the main game loop
+        //                 return;
+        //             }
 
-                    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN) {
-                        // Reset the game state
-                        playerLives = 3;
-                        gameOver = false;
+        //             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN) {
+        //                 // Reset the game state
+        //                 playerLives = 3;
+        //                 gameOver = false;
 
-                        // Reset ship position and velocity
-                        x = SCREEN_WIDTH / 2;
-                        y = SCREEN_HEIGHT / 2;
-                        velocityX = 0;
-                        velocityY = 0;
+        //                 // Reset ship position and velocity
+        //                 x = SCREEN_WIDTH / 2;
+        //                 y = SCREEN_HEIGHT / 2;
+        //                 velocityX = 0;
+        //                 velocityY = 0;
 
-                        // Clear all bullets (preserve asteroid motion)
-                        bullets.clear();
+        //                 // Clear all bullets (preserve asteroid motion)
+        //                 bullets.clear();
 
-                        return; // Exit the Game Over state and restart the game
-                    }
-                }
+        //                 return; // Exit the Game Over state and restart the game
+        //             }
+        //         }
 
-                SDL_Delay(100); // Add a small delay to reduce CPU usage
-            }
-        }
+        //         SDL_Delay(100); // Add a small delay to reduce CPU usage
+        //     }
+        // }
 
         
         // Update Screen
@@ -470,4 +438,5 @@ void createGame(){
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    return;
 }
