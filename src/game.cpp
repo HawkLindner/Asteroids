@@ -32,20 +32,13 @@ using namespace std;
 
 const int SCREEN_WIDTH = 1200;
 const int SCREEN_HEIGHT = 800;
-//sets font color
-SDL_Color textColor = {255, 255, 255, 255};
-//for keyboard
-SDL_Event event;
 // Key Handling, gets the state of the keyboard
 const Uint8* state = SDL_GetKeyboardState(NULL);
-//how many player lives until they lose
-int playerLives = 3;
 
 const double PI = 3.14159265;
 //function to convert degrees to radians
 inline double toRadians(double degrees) { return degrees * PI / 180.0; }
-double x,y;
-double velocityX,velocityY;
+
 /*
     This function is used to render the text that will display the players lives
 */
@@ -96,13 +89,53 @@ void drawStartingShip(double x, double y, double angle,SDL_Renderer* renderer){
 
     SDL_RenderDrawLines(renderer, points, 4);
 }
+void renderDriftingLines(
+    SDL_Renderer* renderer,
+    SDL_Point points[4],
+    double velocities[3][2], // Velocities for each line (x and y)
+    int driftFrames
+) {
+    for (int frame = 0; frame < driftFrames; ++frame) {
+        // Clear the screen to black
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
 
-void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets,int &playerLives, double x, double y,double velocityX, double velocityY, bool &gameOver
-                ,SDL_Renderer* renderer, double angle){
-    (void)velocityX;
-    (void)velocityY;
-    (void)gameOver;
+        // Update the positions of each vertex
+        for (int i = 0; i < 3; ++i) {
+            points[i].x += velocities[i][0]; // Update x position
+            points[i].y += velocities[i][1]; // Update y position
+        }
+
+        // Set the color for the drifting lines (same as the ship's color)
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White color for the lines
+
+        // Draw the drifting lines
+        SDL_RenderDrawLines(renderer, points, 4);
+
+        // Present the frame
+        SDL_RenderPresent(renderer);
+
+        // Delay for smooth animation (~60 FPS)
+        SDL_Delay(16);
+    }
+}
+
+
+
+void checkDamage(
+    vector<asteroid> &asteroids,
+    vector<bullet> &bullets,
+    int &playerLives,
+    double &x,
+    double &y,
+    double &velocityX,
+    double &velocityY,
+    bool &gameOver,
+    SDL_Renderer* renderer,
+    double angle
+) {
     std::vector<asteroid> newAsteroids; // Temporary vector to store new asteroids
+
     for (auto itAst = asteroids.begin(); itAst != asteroids.end();) {
         bool asteroidDestroyed = false;
 
@@ -117,7 +150,7 @@ void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets,int &playe
                 std::vector<asteroid> fragments = itAst->split();
                 newAsteroids.insert(newAsteroids.end(), fragments.begin(), fragments.end());
 
-                itBullet = bullets.erase(itBullet); // Safe erase: remove bullet
+                itBullet = bullets.erase(itBullet); // Remove the bullet
                 asteroidDestroyed = true; // Mark asteroid for removal
                 break; // Exit bullet loop
             } else {
@@ -133,13 +166,30 @@ void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets,int &playe
         if (shipDistance < itAst->getRad()) {
             // Ship hits asteroid
             playerLives--;
-            sleep(2);
-            y = SCREEN_HEIGHT/2;
-            x = SCREEN_WIDTH/2;
-            velocityX,velocityY = 0;
-            drawStartingShip(x,y,angle,renderer);
 
+            // Calculate triangle points for the ship
+            SDL_Point points[4] = {
+                {static_cast<int>(x + cos(toRadians(angle)) * 20), static_cast<int>(y + sin(toRadians(angle)) * 20)}, // Tip
+                {static_cast<int>(x + cos(toRadians(angle + 140)) * 15), static_cast<int>(y + sin(toRadians(angle + 140)) * 15)}, // Left
+                {static_cast<int>(x + cos(toRadians(angle - 140)) * 15), static_cast<int>(y + sin(toRadians(angle - 140)) * 15)}, // Right
+                {static_cast<int>(x + cos(toRadians(angle)) * 20), static_cast<int>(y + sin(toRadians(angle)) * 20)}  // Close triangle
+            };
 
+            // Assign random velocities to each line
+            double velocities[3][2] = {
+                {(rand() % 5 - 2) * 0.5, (rand() % 5 - 2) * 0.5}, // Tip to Left
+                {(rand() % 5 - 2) * 0.5, (rand() % 5 - 2) * 0.5}, // Left to Right
+                {(rand() % 5 - 2) * 0.5, (rand() % 5 - 2) * 0.5}  // Right to Tip
+            };
+
+            // Render drifting lines for 60 frames (~1 second)
+            renderDriftingLines(renderer, points, velocities, 60);
+
+            // Reset ship position and velocity after the explosion
+            x = SCREEN_WIDTH / 2;
+            y = SCREEN_HEIGHT / 2;
+            velocityX = 0;
+            velocityY = 0;
 
             if (playerLives == 0) {
                 gameOver = true; // Trigger game over
@@ -160,67 +210,12 @@ void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets,int &playe
     // Add newly created asteroids to the main vector
     asteroids.insert(asteroids.end(), newAsteroids.begin(), newAsteroids.end());
 }
+
+
 /*
     This will be the function for the game
 */
 void createGame(){
-
-    //initializes sdl
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        cout << "SDL could not initialize! SDL_Error: " << SDL_GetError() << endl;
-        return;
-    }
-        //if the text cannot init send error
-    if (TTF_Init() == -1) {
-        cout << "SDL_ttf could not initialize! TTF_Error: " << TTF_GetError() << endl;
-        SDL_Quit();
-        return;
-    }
-
-    // Create a window
-    SDL_Window* window = SDL_CreateWindow("Asteroids Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                            SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if (!window) {
-        cout << "Window could not be created! SDL_Error: " << SDL_GetError() << endl;
-        SDL_Quit();
-        return;
-    }
-
-    // Create a renderer
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (!renderer) {
-        cout << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return;
-    }
-
-    //Initialize shooting sound
-    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-        cout << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << endl;
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return;
-    }
-
-    // Load shooting sound
-    Mix_Chunk* shootSound = Mix_LoadWAV("assets/shoot.wav");
-    if (!shootSound) {
-        cout << "Failed to load shooting sound! SDL_mixer Error: " << Mix_GetError() << endl;
-        Mix_CloseAudio();
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return;
-    }
-
-    // Load the font from assets folder
-    TTF_Font *font = TTF_OpenFont("assets/fonts/stocky.ttf", 36); // Path to your font file
-    if (!font) {
-        cout << "Failed to load font! TTF_Error: " << TTF_GetError() << endl;
-        return;
-    }
 
     // Main loop flag
     bool running = true;
@@ -248,10 +243,75 @@ void createGame(){
     const double speed = 0.1; 
     //how fast the ship turns
     const double rotationSpeed = 3.0;
-
+    //how many player lives until they lose
+    int playerLives = 3;
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+    Mix_Chunk* shootSound;
+    TTF_Font* font;
+    //for keyboard
+    SDL_Event event;    
     //vectors for bullets and asteroids
     vector<bullet> bullets;
     vector<asteroid> asteroids;
+
+    //initializes sdl
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        cout << "SDL could not initialize! SDL_Error: " << SDL_GetError() << endl;
+        return;
+    }
+        //if the text cannot init send error
+    if (TTF_Init() == -1) {
+        cout << "SDL_ttf could not initialize! TTF_Error: " << TTF_GetError() << endl;
+        SDL_Quit();
+        return;
+    }
+
+    // Create a window
+    window = SDL_CreateWindow("Asteroids Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                            SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    if (!window) {
+        cout << "Window could not be created! SDL_Error: " << SDL_GetError() << endl;
+        SDL_Quit();
+        return;
+    }
+
+    // Create a renderer
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        cout << "Renderer could not be created! SDL_Error: " << SDL_GetError() << endl;
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+
+    //Initialize shooting sound
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        cout << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+
+    // Load shooting sound
+    shootSound = Mix_LoadWAV("assets/shoot.wav");
+    if (!shootSound) {
+        cout << "Failed to load shooting sound! SDL_mixer Error: " << Mix_GetError() << endl;
+        Mix_CloseAudio();
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+
+    // Load the font from assets folder
+    font = TTF_OpenFont("assets/fonts/orig.ttf", 36); // Path to your font file
+    if (!font) {
+        cout << "Failed to load font! TTF_Error: " << TTF_GetError() << endl;
+        return;
+    }
+    drawStartingShip(x,y,angle,renderer);
 
     // Spawn initial asteroids, needs to be worked on for levels
     for (int i = 0; i < 15; ++i) {
@@ -263,7 +323,6 @@ void createGame(){
         asteroids.emplace_back(startX, startY, velocityX, velocityY, size);
         
     }
-
     // Game loop, while running is true, we loop
     while (running) {
         // Handle events such as keyboard
@@ -367,9 +426,11 @@ void createGame(){
         // string livesText = "Lives: " + to_string(playerLives);
         // renderText(renderer, font, livesText, 10, 10, textColor);
 
+
         drawStartingShip(x,y,angle,renderer);
 
-        checkDamage(asteroids,bullets,playerLives,x,y,velocityX,velocityY,gameOver,renderer,angle);
+        checkDamage(asteroids, bullets, playerLives, x, y, velocityX, velocityY, gameOver, renderer, angle);
+
 
         for (auto& bullet : bullets) bullet.render(renderer);
         for (auto& asteroid : asteroids) asteroid.render(renderer);
