@@ -89,38 +89,20 @@ void drawStartingShip(double x, double y, double angle,SDL_Renderer* renderer){
 
     SDL_RenderDrawLines(renderer, points, 4);
 }
-void renderDriftingLines(
-    SDL_Renderer* renderer,
-    SDL_Point points[4],
-    double velocities[3][2], // Velocities for each line (x and y)
-    int driftFrames
-) {
-    for (int frame = 0; frame < driftFrames; ++frame) {
-        // Clear the screen to black
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-
-        // Update the positions of each vertex
-        for (int i = 0; i < 3; ++i) {
-            points[i].x += velocities[i][0]; // Update x position
-            points[i].y += velocities[i][1]; // Update y position
+/*
+    This is a helper function that will allow my check damage to render a circle to show the explosion
+*/
+void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int radius) {
+    for (int w = 0; w < radius * 2; w++) {
+        for (int h = 0; h < radius * 2; h++) {
+            int dx = radius - w; // Horizontal offset
+            int dy = radius - h; // Vertical offset
+            if ((dx * dx + dy * dy) <= (radius * radius)) {
+                SDL_RenderDrawPoint(renderer, x + dx, y + dy);
+            }
         }
-
-        // Set the color for the drifting lines (same as the ship's color)
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White color for the lines
-
-        // Draw the drifting lines
-        SDL_RenderDrawLines(renderer, points, 4);
-
-        // Present the frame
-        SDL_RenderPresent(renderer);
-
-        // Delay for smooth animation (~60 FPS)
-        SDL_Delay(16);
     }
 }
-
-
 
 void checkDamage(
     vector<asteroid> &asteroids,
@@ -167,25 +149,17 @@ void checkDamage(
             // Ship hits asteroid
             playerLives--;
 
-            // Calculate triangle points for the ship
-            SDL_Point points[4] = {
-                {static_cast<int>(x + cos(toRadians(angle)) * 20), static_cast<int>(y + sin(toRadians(angle)) * 20)}, // Tip
-                {static_cast<int>(x + cos(toRadians(angle + 140)) * 15), static_cast<int>(y + sin(toRadians(angle + 140)) * 15)}, // Left
-                {static_cast<int>(x + cos(toRadians(angle - 140)) * 15), static_cast<int>(y + sin(toRadians(angle - 140)) * 15)}, // Right
-                {static_cast<int>(x + cos(toRadians(angle)) * 20), static_cast<int>(y + sin(toRadians(angle)) * 20)}  // Close triangle
-            };
+            // Render explosion effect
+            const int explosionFrames = 30; // Duration of explosion effect
+            for (int i = 0; i < explosionFrames; ++i) {
+                SDL_SetRenderDrawColor(renderer, 255, 100, 0, 255); // Orange color for explosion
+                SDL_RenderDrawPoint(renderer, static_cast<int>(x), static_cast<int>(y)); // Explosion center
+                SDL_RenderDrawCircle(renderer, static_cast<int>(x), static_cast<int>(y), i * 3); // Expanding circle
+                SDL_RenderPresent(renderer); // Show the explosion
+                SDL_Delay(16); // Frame delay (~60 FPS)
+            }
 
-            // Assign random velocities to each line
-            double velocities[3][2] = {
-                {(rand() % 5 - 2) * 0.5, (rand() % 5 - 2) * 0.5}, // Tip to Left
-                {(rand() % 5 - 2) * 0.5, (rand() % 5 - 2) * 0.5}, // Left to Right
-                {(rand() % 5 - 2) * 0.5, (rand() % 5 - 2) * 0.5}  // Right to Tip
-            };
-
-            // Render drifting lines for 60 frames (~1 second)
-            renderDriftingLines(renderer, points, velocities, 60);
-
-            // Reset ship position and velocity after the explosion
+            // Reset ship position and velocity after explosion
             x = SCREEN_WIDTH / 2;
             y = SCREEN_HEIGHT / 2;
             velocityX = 0;
