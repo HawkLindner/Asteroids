@@ -8,6 +8,7 @@
 #include <SDL2/SDL_ttf.h>
 #include "game.h"
 #include "mainScreen.cpp"
+#include "endScreen.cpp"
 
 #include <iostream>
 #include <string>
@@ -22,9 +23,17 @@ using namespace std;
 */
 int main()
 {
-    int playerLives = 3;
+    
     cout<<"Welcome"<<endl;
-    startScreen();
-    createGame();
+    // while(1){
+        bool end = true;
+        startScreen();
+        createGame();
+        end = endGame();
+        while(end!= true){
+            createGame();
+            end = endGame();
+        }
+    //}
     return 0;
 }

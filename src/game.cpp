@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include "game.h"
+#include "constants.h"
 #include "bullet.h"
 #include "asteroid.h"
 
@@ -29,15 +30,8 @@ using namespace std;
     Manages the game loop (update, render, handle input).
     Acts as the central hub for all game objects (ship, asteroids, bullets).
 */
-
-const int SCREEN_WIDTH = 1200;
-const int SCREEN_HEIGHT = 800;
 // Key Handling, gets the state of the keyboard
 const Uint8* state = SDL_GetKeyboardState(NULL);
-
-const double PI = 3.14159265;
-//function to convert degrees to radians
-inline double toRadians(double degrees) { return degrees * PI / 180.0; }
 
 /*
     This function is used to render the text that will display the players lives
@@ -112,7 +106,7 @@ void checkDamage(
     double &y,
     double &velocityX,
     double &velocityY,
-    bool &gameOver,
+    bool &running,
     SDL_Renderer* renderer,
     double angle
 ) {
@@ -166,7 +160,7 @@ void checkDamage(
             velocityY = 0;
 
             if (playerLives == 0) {
-                gameOver = true; // Trigger game over
+                running = false;
                 break;
             }
 
@@ -199,8 +193,6 @@ void createGame(){
     bool isMoving = false;
     //if the space is pressed, we are shooting a bullet
     bool spacePressed = false;
-    //if player lives gets to 0, game over
-    bool gameOver = false;
     //starts the ship in the center
     double x = SCREEN_WIDTH / 2;
     double y = SCREEN_HEIGHT / 2;
@@ -403,64 +395,12 @@ void createGame(){
 
         drawStartingShip(x,y,angle,renderer);
 
-        checkDamage(asteroids, bullets, playerLives, x, y, velocityX, velocityY, gameOver, renderer, angle);
+        checkDamage(asteroids, bullets, playerLives, x, y, velocityX, velocityY, running, renderer, angle);
 
 
         for (auto& bullet : bullets) bullet.render(renderer);
         for (auto& asteroid : asteroids) asteroid.render(renderer);
 
-
-        // if (gameOver) {
-        //     // Clear the screen
-        //     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        //     SDL_RenderClear(renderer);
-
-        //     // Keep asteroids floating
-        //     for (auto& asteroid : asteroids) {
-        //         asteroid.update();  // Update asteroid positions
-        //         asteroid.render(renderer);  // Render asteroids
-        //     }
-
-        //     // Display "Game Over" message
-        //     string gameOverText = "GAME OVER";
-        //     string restartText = "Press Enter to Restart";
-        //     renderText(renderer, font, gameOverText, SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, textColor);
-        //     renderText(renderer, font, restartText, SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 + 20, textColor);
-
-        //     SDL_RenderPresent(renderer); // Display everything
-
-        //     // Wait for Enter key to restart the game
-        //     SDL_Event event;
-        //     while (true) {
-        //         while (SDL_PollEvent(&event)) {
-        //             if (event.type == SDL_QUIT) {
-        //                 running = false; // Exit the main game loop
-        //                 return;
-        //             }
-
-        //             if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN) {
-        //                 // Reset the game state
-        //                 playerLives = 3;
-        //                 gameOver = false;
-
-        //                 // Reset ship position and velocity
-        //                 x = SCREEN_WIDTH / 2;
-        //                 y = SCREEN_HEIGHT / 2;
-        //                 velocityX = 0;
-        //                 velocityY = 0;
-
-        //                 // Clear all bullets (preserve asteroid motion)
-        //                 bullets.clear();
-
-        //                 return; // Exit the Game Over state and restart the game
-        //             }
-        //         }
-
-        //         SDL_Delay(100); // Add a small delay to reduce CPU usage
-        //     }
-        // }
-
-        
         // Update Screen
         SDL_RenderPresent(renderer);
 
