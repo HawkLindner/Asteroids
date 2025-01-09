@@ -9,16 +9,16 @@
 
 
 //Using SDL, SDL_image, SDL_ttf, standard IO, math, and strings
-
 #include <stdio.h>
 #include "game.h"
 #include "constants.h"
 #include "bullet.h"
 #include "asteroid.h"
-
+#include "shared_context.h"
 #include <unistd.h> // for sleep()
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -68,8 +68,6 @@ void renderTextOnScreen(SDL_Renderer* renderer, SDL_Texture* textTexture, int x,
     SDL_RenderCopy(renderer, textTexture, nullptr, &renderQuad);
 }
 
-
-
 void drawStartingShip(double x, double y, double angle,SDL_Renderer* renderer){
      // Calculate triangle points
     SDL_Point points[4]; // 3 vertices + closing line
@@ -98,17 +96,7 @@ void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int radius) {
     }
 }
 
-void checkDamage(
-    vector<asteroid> &asteroids,
-    vector<bullet> &bullets,
-    int &playerLives,
-    double &x,
-    double &y,
-    double &velocityX,
-    double &velocityY,
-    bool &running,
-    SDL_Renderer* renderer,
-    double angle
+void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets, int &playerLives, double &x, double &y, double &velocityX,double &velocityY, bool &running, SDL_Renderer* renderer, double angle, int &playerScore
 ) {
     std::vector<asteroid> newAsteroids; // Temporary vector to store new asteroids
 
@@ -122,12 +110,22 @@ void checkDamage(
             double distance = sqrt(dx * dx + dy * dy);
 
             if (distance < itAst->getRad()) {
+                int asteroidSize = itAst->getSize();
+                if (asteroidSize == 3) {
+                    playerScore += 15;
+                } else if (asteroidSize == 2) {
+                    playerScore += 35;
+                } else if (asteroidSize == 1) {
+                    playerScore += 50;
+                }
+
                 // Bullet hits asteroid
                 std::vector<asteroid> fragments = itAst->split();
                 newAsteroids.insert(newAsteroids.end(), fragments.begin(), fragments.end());
 
                 itBullet = bullets.erase(itBullet); // Remove the bullet
                 asteroidDestroyed = true; // Mark asteroid for removal
+                playerScore += 100;
                 break; // Exit bullet loop
             } else {
                 ++itBullet; // Increment bullet iterator
@@ -187,8 +185,6 @@ void createGame(){
 
     // Main loop flag
     bool running = true;
-    //for start screen
-    bool isStartScreen = true;
     //if the ship is not moving it will slow down 
     bool isMoving = false;
     //if the space is pressed, we are shooting a bullet
@@ -209,17 +205,26 @@ void createGame(){
     const double speed = 0.1; 
     //how fast the ship turns
     const double rotationSpeed = 3.0;
+
+    double scoreMultiplier = 2.5;
     //how many player lives until they lose
     int playerLives = 3;
-    SDL_Window* window;
-    SDL_Renderer* renderer;
+
+    int scoreForNextLevel = 1000;
+    //sets player score
+    int playerScore = 0;
+    int level = 1;
+    int maxLevel = 20;
+    //creates a Mix_Chunk for the sound of the shooting
     Mix_Chunk* shootSound;
-    TTF_Font* font;
     //for keyboard
     SDL_Event event;    
     //vectors for bullets and asteroids
     vector<bullet> bullets;
     vector<asteroid> asteroids;
+
+    SDL_Color white = {255, 255, 255, 255}; // White color
+
 
     //initializes sdl
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -277,18 +282,17 @@ void createGame(){
         cout << "Failed to load font! TTF_Error: " << TTF_GetError() << endl;
         return;
     }
+    //draws the starting ship once before the loops start
     drawStartingShip(x,y,angle,renderer);
 
-    // Spawn initial asteroids, needs to be worked on for levels
-    for (int i = 0; i < 15; ++i) {
-        double startX = rand() % SCREEN_WIDTH;
-        double startY = rand() % SCREEN_HEIGHT;
-        double velocityX = (rand() % 5 + 1) * (rand() % 2 == 0 ? 1 : -1); // Random speed and direction
-        double velocityY = (rand() % 5 + 1) * (rand() % 2 == 0 ? 1 : -1);
-        int size = 3; // Large asteroid
-        asteroids.emplace_back(startX, startY, velocityX, velocityY, size);
-        
-    }
+    for (int i = 0; i < 5; ++i) {
+            double startX = rand() % SCREEN_WIDTH;
+            double startY = rand() % SCREEN_HEIGHT;
+            double velocityX = (rand() % (3 + level)) * (rand() % 2 == 0 ? 1 : -1); // Faster asteroids
+            double velocityY = (rand() % (3 + level)) * (rand() % 2 == 0 ? 1 : -1);
+            int size = 3; // Large asteroid
+            asteroids.emplace_back(startX, startY, velocityX, velocityY, size);
+        }
     // Game loop, while running is true, we loop
     while (running) {
         // Handle events such as keyboard
@@ -357,7 +361,7 @@ void createGame(){
         if (y > SCREEN_HEIGHT) y = 0;
         if (y < 0) y = SCREEN_HEIGHT;
 
-
+        //speed of the ship
         speedMagnitude = sqrt(velocityX * velocityX + velocityY * velocityY);
 
         // Apply speed limit
@@ -369,9 +373,7 @@ void createGame(){
         x += velocityX;
         y += velocityY;
 
-
-
-
+        //this updates the bullet and the asteroid vectors
         for (auto& bullet : bullets) bullet.update();
         for (auto& asteroid : asteroids) asteroid.update();
 
@@ -380,6 +382,8 @@ void createGame(){
                                         [](const bullet& b) { return !b.isActive(); }),
                                         bullets.end());
 
+        //This is how i display the player Lives
+        string livesText = to_string(playerLives);
 
         // Rendering
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Clear screen to black
@@ -388,16 +392,71 @@ void createGame(){
         // Draw Ship (Triangle)
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Ship color (white)
 
-          // Render the remaining lives
-        // string livesText = "Lives: " + to_string(playerLives);
-        // renderText(renderer, font, livesText, 10, 10, textColor);
+        // Render the remaining lives
+        SDL_Texture* titleTexture = renderText(renderer, font, "Lives  " + livesText, white);
+        if (titleTexture) {
+            int textWidth, textHeight;
+            SDL_QueryTexture(titleTexture, NULL, NULL, &textWidth, &textHeight);
+
+            SDL_Rect titleRect = {
+                10,10,textWidth, textHeight
+            };
+
+            SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+            SDL_DestroyTexture(titleTexture); // Free the texture after rendering
+        }
+        string scoreText = to_string(playerScore);
+        SDL_Texture* score = renderText(renderer, font, "Score " + scoreText,white);
+        if(score){
+            int textWidth, textHeight;
+            SDL_QueryTexture(score,NULL,NULL,&textWidth,&textHeight);
+            SDL_Rect titleRect = {
+                SCREEN_WIDTH - textWidth,
+                10,
+                textWidth,
+                textHeight
+            };
+        }
 
 
         drawStartingShip(x,y,angle,renderer);
 
-        checkDamage(asteroids, bullets, playerLives, x, y, velocityX, velocityY, running, renderer, angle);
+        //this will check damage between the ship and asteroids, and the bullets and asteroids
+        checkDamage(asteroids, bullets, playerLives, x, y, velocityX, velocityY, running, renderer, angle, playerScore);
 
+        if(playerScore >= scoreForNextLevel){
+            scoreForNextLevel = scoreForNextLevel * scoreMultiplier;
 
+            // Render the remaining lives
+            SDL_Texture* levelUp = renderText(renderer, font, "Level Up!", white);
+            if (levelUp) {
+                int textWidth, textHeight;
+                SDL_QueryTexture(levelUp, NULL, NULL, &textWidth, &textHeight);
+
+                SDL_Rect titleRect = {
+                    SCREEN_WIDTH / 2 - textWidth / 2,
+                    SCREEN_HEIGHT / 2 - textHeight / 2 - 50, // Slightly above center
+                    textWidth,
+                    textHeight
+                };
+
+                SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+                SDL_DestroyTexture(titleTexture); // Free the texture after rendering
+            }
+            sleep(2.5);
+            // Spawn initial asteroids, needs to be worked on for levels
+            int numNewAsteroids = level + 5;
+            for (int i = 0; i < numNewAsteroids; ++i) {
+                double startX = rand() % SCREEN_WIDTH;
+                double startY = rand() % SCREEN_HEIGHT;
+                double velocityX = (rand() % (3 + level)) * (rand() % 2 == 0 ? 1 : -1); // Faster asteroids
+                double velocityY = (rand() % (3 + level)) * (rand() % 2 == 0 ? 1 : -1);
+                int size = 3; // Large asteroid
+                asteroids.emplace_back(startX, startY, velocityX, velocityY, size);
+            }
+        }
+
+        //these for loops render the bullets that are on the screen and the asteroids in the vector
         for (auto& bullet : bullets) bullet.render(renderer);
         for (auto& asteroid : asteroids) asteroid.render(renderer);
 

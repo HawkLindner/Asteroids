@@ -26,11 +26,12 @@ void asteroid::update() {
 vector<asteroid> asteroid::split() {
     vector<asteroid> fragments;
 
-if (splitCount >= 1) {
+if (splitCount >= 2 || size <= 1) {
         active = false; // Destroy the asteroid
     } else {
         // Split into two smaller asteroids
         int newSize = size / 2; // Reduce size
+        if(newSize < 1)newSize =1;
         double newVelX1 = velocityX + (rand() % 3 - 1);
         double newVelY1 = velocityY + (rand() % 3 - 1);
         double newVelX2 = -velocityX + (rand() % 3 - 1);

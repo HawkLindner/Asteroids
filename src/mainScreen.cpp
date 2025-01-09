@@ -42,7 +42,7 @@ void startScreen() {
 
     // Create a window
     SDL_Window* window = SDL_CreateWindow("Asteroids Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                          SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+                                            SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (!window) {
         cout << "Window could not be created! SDL_Error: " << SDL_GetError() << endl;
         SDL_Quit();
