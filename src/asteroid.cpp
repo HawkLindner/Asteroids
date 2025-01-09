@@ -5,11 +5,10 @@
 
 #include "asteroid.h"
 #include <vector>
+#include "constants.h"
 
 using namespace std;
 
-const int SCREEN_WIDTH = 1200;
-const int SCREEN_HEIGHT = 900;
 
 asteroid::asteroid(double startX, double startY, double velX, double velY, int size, int splitCount)
     : x(startX), y(startY), velocityX(velX), velocityY(velY), size(size), 
@@ -30,7 +29,7 @@ if (splitCount >= 2 || size <= 1) {
         active = false; // Destroy the asteroid
     } else {
         // Split into two smaller asteroids
-        int newSize = size / 2; // Reduce size
+        int newSize = size - 1; // Reduce size
         if(newSize < 1)newSize =1;
         double newVelX1 = velocityX + (rand() % 3 - 1);
         double newVelY1 = velocityY + (rand() % 3 - 1);

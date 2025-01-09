@@ -22,7 +22,6 @@ using namespace std;
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 TTF_Font* font = nullptr;
-Mix_Chunk* shootsound = nullptr;
 /*
     This is my program of making asteroids using C++
 

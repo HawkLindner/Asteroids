@@ -96,7 +96,7 @@ void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int radius) {
     }
 }
 
-void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets, int &playerLives, double &x, double &y, double &velocityX,double &velocityY, bool &running, SDL_Renderer* renderer, double angle, int &playerScore
+void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets, int &playerLives, double &x, double &y, double &velocityX,double &velocityY, bool &running, SDL_Renderer* renderer, double angle, int &playerScore,Mix_Chunk* largeShoot,Mix_Chunk* mediumShoot, Mix_Chunk* smallShoot
 ) {
     std::vector<asteroid> newAsteroids; // Temporary vector to store new asteroids
 
@@ -113,10 +113,13 @@ void checkDamage(vector<asteroid> &asteroids, vector<bullet> &bullets, int &play
                 int asteroidSize = itAst->getSize();
                 if (asteroidSize == 3) {
                     playerScore += 15;
+                    Mix_PlayChannel(-1, largeShoot, 0); // Play shooting sound
                 } else if (asteroidSize == 2) {
                     playerScore += 35;
+                    Mix_PlayChannel(-1, mediumShoot, 0); // Play shooting sound
                 } else if (asteroidSize == 1) {
                     playerScore += 50;
+                    Mix_PlayChannel(-1, smallShoot, 0); // Play shooting sound
                 }
 
                 // Bullet hits asteroid
@@ -275,6 +278,33 @@ void createGame(){
         SDL_Quit();
         return;
     }
+    Mix_Chunk* largeShoot = Mix_LoadWAV("assets/largeShoot.mp3");
+    if(!largeShoot){
+        cout << "Failed to load shooting sound! SDL_mixer Error: " << Mix_GetError() << endl;
+        Mix_CloseAudio();
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+    Mix_Chunk* mediumShoot = Mix_LoadWAV("assets/mediumShoot.mp3");
+    if(!mediumShoot){
+        cout << "Failed to load shooting sound! SDL_mixer Error: " << Mix_GetError() << endl;
+        Mix_CloseAudio();
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+    Mix_Chunk* smallShoot = Mix_LoadWAV("assets/smallShoot.mp3");
+    if(!smallShoot){
+        cout << "Failed to load shooting sound! SDL_mixer Error: " << Mix_GetError() << endl;
+        Mix_CloseAudio();
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
 
     // Load the font from assets folder
     font = TTF_OpenFont("assets/fonts/orig.ttf", 36); // Path to your font file
@@ -416,17 +446,23 @@ void createGame(){
                 textWidth,
                 textHeight
             };
+            SDL_RenderCopy(renderer, score,NULL, &titleRect);
+            SDL_DestroyTexture(score);
         }
 
 
         drawStartingShip(x,y,angle,renderer);
 
         //this will check damage between the ship and asteroids, and the bullets and asteroids
-        checkDamage(asteroids, bullets, playerLives, x, y, velocityX, velocityY, running, renderer, angle, playerScore);
+        checkDamage(asteroids, bullets, playerLives, x, y, velocityX, velocityY, running, renderer, angle, playerScore,largeShoot,mediumShoot,
+                    smallShoot);
 
-        if(playerScore >= scoreForNextLevel){
-            scoreForNextLevel = scoreForNextLevel * scoreMultiplier;
-
+        if(asteroids.size() == 0){
+            bullets.clear();
+            asteroids.clear();
+            level++;
+             // Draw Ship (Triangle)
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // Ship color (white)
             // Render the remaining lives
             SDL_Texture* levelUp = renderText(renderer, font, "Level Up!", white);
             if (levelUp) {
@@ -440,12 +476,19 @@ void createGame(){
                     textHeight
                 };
 
-                SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
-                SDL_DestroyTexture(titleTexture); // Free the texture after rendering
+                SDL_RenderCopy(renderer, levelUp, NULL, &titleRect);
+                SDL_DestroyTexture(levelUp); // Free the texture after rendering
             }
-            sleep(2.5);
+            SDL_RenderPresent(renderer);
+            sleep(2);
+            int numNewAsteroids;
             // Spawn initial asteroids, needs to be worked on for levels
-            int numNewAsteroids = level + 5;
+            if(level < maxLevel){
+                int numNewAsteroids = level + 5;
+            }
+            else{
+                numNewAsteroids = numNewAsteroids;
+            }
             for (int i = 0; i < numNewAsteroids; ++i) {
                 double startX = rand() % SCREEN_WIDTH;
                 double startY = rand() % SCREEN_HEIGHT;
@@ -468,6 +511,7 @@ void createGame(){
 
   // Cleanup
     TTF_CloseFont(font);
+    Mix_CloseAudio();
     TTF_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

@@ -24,6 +24,8 @@
 #include <ctime>
 using namespace std;
 
+
+
 /*
     Manages the game loop (update, render, handle input).
     Acts as the central hub for all game objects (ship, asteroids, bullets).
@@ -73,12 +75,13 @@ bool endGame(){
         int size = 3; // Large asteroid
         startScreenAsteroids.emplace_back(startX, startY, velocityX, velocityY, size);
     }
+
     // Start screen loop
     bool endgame = true;
     while (endgame) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE ) {
                 return true;
             }
 
