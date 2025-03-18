@@ -70,6 +70,7 @@ void startScreen() {
         return;
     }
 
+
     // Set text color
     SDL_Color white = {255, 255, 255, 255}; // White color
 

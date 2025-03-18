@@ -1,22 +1,13 @@
-// for initializing and shutdown functions
-#include <SDL2/SDL.h>
-// for rendering images and graphics on screen
-#include <SDL2/SDL_image.h>
-// for using SDL_Delay() functions
-#include <SDL2/SDL_timer.h>
-#include <SDL2/SDL_mixer.h>
-#include <SDL2/SDL_ttf.h>
-
-
-//Using SDL, SDL_image, SDL_ttf, standard IO, math, and strings
-#include <stdio.h>
 #include "game.h"
 #include "constants.h"
 #include "bullet.h"
 #include "asteroid.h"
 #include "shared_context.h"
-#include <unistd.h> // for sleep()
-
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_timer.h>
+#include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_ttf.h>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -24,7 +15,10 @@
 #include <cmath>
 #include <cstdlib> // For random number generation
 #include <ctime>
-using namespace std;
+
+using std::cout;
+using std::vector;
+using std::string;
 
 /*
     Manages the game loop (update, render, handle input).
@@ -312,6 +306,7 @@ void createGame(){
         cout << "Failed to load font! TTF_Error: " << TTF_GetError() << endl;
         return;
     }
+
     //draws the starting ship once before the loops start
     drawStartingShip(x,y,angle,renderer);
 
@@ -480,7 +475,7 @@ void createGame(){
                 SDL_DestroyTexture(levelUp); // Free the texture after rendering
             }
             SDL_RenderPresent(renderer);
-            sleep(2);
+            SDL_Delay(2);
             int numNewAsteroids;
             // Spawn initial asteroids, needs to be worked on for levels
             if(level < maxLevel){
